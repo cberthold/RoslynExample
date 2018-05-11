@@ -6,9 +6,11 @@ using System.Threading.Tasks;
 
 namespace RoslynExample.Metadata
 {
-    public class ClassMetadata
+    public class EntityMetadata
     {
         public string ClassName { get; set; }
+
+        public string ClassNamespace { get; set; }
 
         public IList<PropertyMetadata> Fields { get; } = new List<PropertyMetadata>(100);
     }
