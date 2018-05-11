@@ -79,7 +79,10 @@ namespace RoslynExample
                 .AddMembers(classDeclaration)
                 .NormalizeWhitespace();
 
-            root = root.AddMembers(@namespace);
+            root = root
+                // add members to the root compilation unit
+                .AddMembers(@namespace)
+                .NormalizeWhitespace();
 
             return root;
         }
