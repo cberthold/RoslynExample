@@ -10,7 +10,8 @@ namespace RoslynExample.Locators
 {
     public class InputDtoClassLocator : CSharpSyntaxWalker
     {
-        public string InputDtoName { get; set; }
+        public string InputDtoName { get; private set; }
+        public ClassDeclarationSyntax InputDtoNode { get; private set; }
 
         public override void VisitClassDeclaration(ClassDeclarationSyntax node)
         {
@@ -19,6 +20,7 @@ namespace RoslynExample.Locators
             if (nodeClassName.EndsWith("InputDTO", StringComparison.OrdinalIgnoreCase))
             {
                 InputDtoName = nodeClassName;
+                InputDtoNode = node;
             }
 
             base.VisitClassDeclaration(node);
