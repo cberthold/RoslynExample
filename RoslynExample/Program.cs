@@ -65,7 +65,8 @@ namespace RoslynExample
 
             var root = tree.GetCompilationUnitRoot();
             // walker.Visit(tree.GetRoot());
-
+            var command = CommandBuilder.FromSyntaxTree(tree);
+            Console.WriteLine(command.ToFullString());
             Console.ReadKey();
         }
 
