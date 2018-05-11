@@ -7,18 +7,11 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Text;
+using RoslynExample.Debugging;
 using RoslynExample.Metadata;
 
 namespace RoslynExample
 {
-
-
-
-
-
-
-
-
     public class Program
     {
         public static Solution AddProjectWithMetadataReferences(Solution solution, string projectName, string languageName, string code, MetadataReference metadataReference, params ProjectId[] projectReferences)
@@ -62,10 +55,13 @@ namespace RoslynExample
             var project = solution.Projects.First();
             var compilation = project.GetCompilationAsync().Result;
             var tree = compilation.SyntaxTrees.First();
-
             var root = tree.GetCompilationUnitRoot();
-            // walker.Visit(tree.GetRoot());
+
+            var consoleWriter = new ConsoleWriterSyntaxWalker();
+            consoleWriter.Visit(root);
+
             var command = CommandBuilder.FromSyntaxTree(tree);
+
             Console.WriteLine(command.ToFullString());
             Console.ReadKey();
         }
