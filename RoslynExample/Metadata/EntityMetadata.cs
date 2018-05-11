@@ -10,6 +10,6 @@ namespace RoslynExample.Metadata
     {
         public string ClassName { get; set; }
 
-        public IList<FieldMetadata> Fields { get; } = new List<FieldMetadata>(100);
+        public IList<PropertyMetadata> Fields { get; } = new List<PropertyMetadata>(100);
     }
 }

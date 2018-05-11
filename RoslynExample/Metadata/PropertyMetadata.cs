@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace RoslynExample.Metadata
 {
-    public class FieldMetadata
+    public class PropertyMetadata
     {
         public string FieldName { get; set; }
         public bool HasGet { get; set; }
