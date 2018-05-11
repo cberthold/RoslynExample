@@ -25,7 +25,7 @@ namespace RoslynExample
             "System.Threading.Tasks",
         };
 
-        public static NamespaceDeclarationSyntax FromSyntaxTree(SyntaxTree inputTree)
+        public static CompilationUnitSyntax FromSyntaxTree(SyntaxTree inputTree)
         {
             var root = inputTree.GetRoot();
 
@@ -57,14 +57,17 @@ namespace RoslynExample
 
             return model;
         }
-        
-        private static NamespaceDeclarationSyntax BuildClass(CommandDefinitionModel model)
+
+        private static CompilationUnitSyntax BuildClass(CommandDefinitionModel model)
         {
-            // create the namespace
-            var @namespace = CreateNamespace(model.Namespace);
+            // create root node
+            var root = CreateRoot();
 
             // add default usings
-            @namespace = AddUsings(@namespace);
+            root = root.AddUsings(GetDefaultUsings().ToArray());
+
+            // create the namespace
+            var @namespace = CreateNamespace(model.Namespace);
 
             // create the command class
             var classDeclaration = SyntaxFactory.ClassDeclaration(model.ClassName)
@@ -76,7 +79,14 @@ namespace RoslynExample
                 .AddMembers(classDeclaration)
                 .NormalizeWhitespace();
 
-            return @namespace;
+            root = root.AddMembers(@namespace);
+
+            return root;
+        }
+
+        private static CompilationUnitSyntax CreateRoot()
+        {
+            return SyntaxFactory.CompilationUnit();
         }
 
         private static NamespaceDeclarationSyntax CreateNamespace(string namespaceValue)
@@ -84,14 +94,12 @@ namespace RoslynExample
             return SyntaxFactory.NamespaceDeclaration(SyntaxFactory.ParseName(namespaceValue)).NormalizeWhitespace();
         }
 
-        private static NamespaceDeclarationSyntax AddUsings(NamespaceDeclarationSyntax @namespace)
+        private static IEnumerable<UsingDirectiveSyntax> GetDefaultUsings()
         {
             foreach (var @using in DefaultUsings)
             {
-                @namespace = @namespace.AddUsings(SyntaxFactory.UsingDirective(SyntaxFactory.ParseName(@using)));
+                yield return SyntaxFactory.UsingDirective(SyntaxFactory.ParseName(@using));
             }
-
-            return @namespace;
         }
 
     }

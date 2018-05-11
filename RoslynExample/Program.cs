@@ -71,7 +71,10 @@ namespace RoslynExample
         }
 
         private static readonly string SOURCE_TEXT = @"
-        public class CreateCustomerInputDTO
+using System;
+
+namespace {
+    public class CreateCustomerInputDTO
     {
         #region Properties
 
@@ -146,6 +149,7 @@ namespace RoslynExample
         Active = 1,
         Inactive = 2
     }
+}
        ";
     }
 }
