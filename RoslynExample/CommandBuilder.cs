@@ -88,7 +88,7 @@ namespace RoslynExample
             // add on the member properties
             classDeclaration = classDeclaration
                 .NormalizeWhitespace()
-                .WithMembers(SyntaxFactory.List<MemberDeclarationSyntax>(BuildMemberProperties(model.InputMetadata.Properties)));
+                .WithMembers(CreateClassMembers(model));
 
             // add the class to the namespace
             @namespace = @namespace
@@ -101,41 +101,81 @@ namespace RoslynExample
             return root;
         }
 
-        private static PropertyDeclarationSyntax[] BuildMemberProperties(IEnumerable<PropertyMetadata> properties)
+        private static SyntaxList<MemberDeclarationSyntax> CreateClassMembers(CommandDefinitionModel model)
         {
-            List<PropertyDeclarationSyntax> declarations = new List<PropertyDeclarationSyntax>(properties.Count() + 5);
+            var members = BuildMemberProperties(model.InputMetadata.Properties)
+                                .OfType<MemberDeclarationSyntax>();
 
-            foreach (var property in properties)
-            {
-                declarations.Add(BuildMemberProperty(property));
-            }
+            var constructors = BuildConstructor(model)
+                                .OfType<MemberDeclarationSyntax>();
 
-            return declarations.ToArray();
+            var memberList = SyntaxFactory.List(members.Union(constructors));
+            return memberList;
         }
 
-        private static PropertyDeclarationSyntax BuildMemberProperty(PropertyMetadata property)
+        private static ConstructorDeclarationSyntax[] BuildConstructor(CommandDefinitionModel model)
         {
-            var type = SyntaxFactory.IdentifierName(property.TypeName);
-            var declaration = SyntaxFactory.PropertyDeclaration(type, property.PropertyName)
-                .WithModifiers(
-                                    SyntaxFactory.TokenList(
-                                        SyntaxFactory.Token(SyntaxKind.PublicKeyword)))
-                                .WithAccessorList(
-                                    SyntaxFactory.AccessorList(
-                                        SyntaxFactory.List<AccessorDeclarationSyntax>(
-                                            new AccessorDeclarationSyntax[]{
-                                                SyntaxFactory.AccessorDeclaration(
-                                                    SyntaxKind.GetAccessorDeclaration)
-                                                .WithSemicolonToken(
-                                                    SyntaxFactory.Token(SyntaxKind.SemicolonToken)),
-                                                SyntaxFactory.AccessorDeclaration(
-                                                    SyntaxKind.SetAccessorDeclaration)
-                                                .WithModifiers(
-                                                    SyntaxFactory.TokenList(
-                                                        SyntaxFactory.Token(SyntaxKind.PrivateKeyword)))
-                                                .WithSemicolonToken(
-                                                    SyntaxFactory.Token(SyntaxKind.SemicolonToken))})));
-            return declaration;
+            var parameters = BuildConstructorTokenList(model.InputMetadata);
+            var constructor = model.CreateConstructorDeclaration()
+                .WithParameterList(
+                                SyntaxFactory.ParameterList(
+                                    SyntaxFactory.SeparatedList<ParameterSyntax>(parameters)))
+                .WithBody(BuildConstructorAssignmentBlock(model.InputMetadata));
+
+            return new ConstructorDeclarationSyntax[] { constructor };
+        }
+
+        private static BlockSyntax BuildConstructorAssignmentBlock(EntityMetadata entity)
+        {
+            var assignments = entity.Properties.Select(p => p.CreateConstructorAssignment()).ToArray();
+            var block = SyntaxFactory.Block(assignments);
+            return block;
+        }
+
+        private static SyntaxNodeOrToken[] BuildConstructorTokenList(EntityMetadata entity)
+        {
+            var properties = entity.Properties;
+            var parameters = BuildConstructorParameters(properties);
+            using (var enumerator = parameters.GetEnumerator())
+            {
+                if (!enumerator.MoveNext())
+                {
+                    return new SyntaxNodeOrToken[0];
+                }
+
+                var tokenList = new List<SyntaxNodeOrToken>((parameters.Count * 2) + 10);
+
+                var lastBaseType = enumerator.Current;
+
+                while (enumerator.MoveNext())
+                {
+                    tokenList.Add(lastBaseType);
+
+                    tokenList.Add(SyntaxFactory.Token(
+                            SyntaxFactory.TriviaList(),
+                            SyntaxKind.CommaToken,
+                            SyntaxFactory.TriviaList(
+                                SyntaxFactory.LineFeed)));
+
+                    lastBaseType = enumerator.Current;
+                }
+
+                tokenList.Add(lastBaseType);
+
+                return tokenList.ToArray();
+            }
+        }
+
+        private static List<ParameterSyntax> BuildConstructorParameters(IEnumerable<PropertyMetadata> properties)
+        {
+            var parameters = properties.Select(p => p.CreateParameter()).ToList();
+            return parameters;
+        }
+
+        private static PropertyDeclarationSyntax[] BuildMemberProperties(IEnumerable<PropertyMetadata> properties)
+        {
+            var propertyDeclarations = properties.Select(p => p.CreatePropertyDeclaration()).ToArray();
+            return propertyDeclarations;
         }
 
         private static BaseListSyntax BuildBaseList()
