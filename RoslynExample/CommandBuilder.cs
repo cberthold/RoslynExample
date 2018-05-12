@@ -87,6 +87,10 @@ namespace RoslynExample
             classDeclaration = classDeclaration.WithBaseList(BuildBaseList())
                 .WithTrailingTrivia(SyntaxFactory.TriviaList(SyntaxFactory.LineFeed));
 
+            // add on the member properties
+            classDeclaration = classDeclaration
+                .WithMembers(SyntaxFactory.List<MemberDeclarationSyntax>(BuildMemberProperties(model.InputMetadata.Properties)));
+
             // add the class to the namespace
             @namespace = @namespace
                 .AddMembers(classDeclaration)
@@ -98,6 +102,43 @@ namespace RoslynExample
                 .NormalizeWhitespace();
 
             return root;
+        }
+
+        private static PropertyDeclarationSyntax[] BuildMemberProperties(IEnumerable<PropertyMetadata> properties)
+        {
+            List<PropertyDeclarationSyntax> declarations = new List<PropertyDeclarationSyntax>(properties.Count() + 5);
+
+            foreach (var property in properties)
+            {
+                declarations.Add(BuildMemberProperty(property));
+            }
+
+            return declarations.ToArray();
+        }
+
+        private static PropertyDeclarationSyntax BuildMemberProperty(PropertyMetadata property)
+        {
+            var type = SyntaxFactory.IdentifierName(property.TypeName);
+            var declaration = SyntaxFactory.PropertyDeclaration(type, property.PropertyName)
+                .WithModifiers(
+                                    SyntaxFactory.TokenList(
+                                        SyntaxFactory.Token(SyntaxKind.PublicKeyword)))
+                                .WithAccessorList(
+                                    SyntaxFactory.AccessorList(
+                                        SyntaxFactory.List<AccessorDeclarationSyntax>(
+                                            new AccessorDeclarationSyntax[]{
+                                                SyntaxFactory.AccessorDeclaration(
+                                                    SyntaxKind.GetAccessorDeclaration)
+                                                .WithSemicolonToken(
+                                                    SyntaxFactory.Token(SyntaxKind.SemicolonToken)),
+                                                SyntaxFactory.AccessorDeclaration(
+                                                    SyntaxKind.SetAccessorDeclaration)
+                                                .WithModifiers(
+                                                    SyntaxFactory.TokenList(
+                                                        SyntaxFactory.Token(SyntaxKind.PrivateKeyword)))
+                                                .WithSemicolonToken(
+                                                    SyntaxFactory.Token(SyntaxKind.SemicolonToken))})));
+            return declaration;
         }
 
         private static BaseListSyntax BuildBaseList()
