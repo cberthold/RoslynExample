@@ -12,6 +12,6 @@ namespace RoslynExample.Metadata
 
         public string ClassNamespace { get; set; }
 
-        public IList<PropertyMetadata> Fields { get; } = new List<PropertyMetadata>(100);
+        public IEnumerable<PropertyMetadata> Properties { get; set; }
     }
 }

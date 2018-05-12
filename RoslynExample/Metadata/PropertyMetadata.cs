@@ -8,9 +8,9 @@ namespace RoslynExample.Metadata
 {
     public class PropertyMetadata
     {
-        public string FieldName { get; set; }
+        public string PropertyName { get; set; }
         public bool HasGet { get; set; }
         public bool HasSet { get; set; }
-        public Type FieldType { get; set; }
+        public string TypeName { get; set; }
     }
 }
