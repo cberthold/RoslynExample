@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using RoslynExample.Formatters;
 using RoslynExample.Locators;
 using RoslynExample.Metadata;
 using RoslynExample.Models;
@@ -23,6 +24,11 @@ namespace RoslynExample
             "System.Linq",
             "System.Text",
             "System.Threading.Tasks",
+        };
+
+        private static readonly string[] ClassImplementations = new string[]
+        {
+            "AbstractCommand",
         };
 
         public static CompilationUnitSyntax FromSyntaxTree(SyntaxTree inputTree)
@@ -70,9 +76,16 @@ namespace RoslynExample
             var @namespace = CreateNamespace(model.Namespace);
 
             // create the command class
-            var classDeclaration = SyntaxFactory.ClassDeclaration(model.ClassName)
-                // add set it accessibility to public
-                .AddModifiers(SyntaxFactory.Token(SyntaxKind.PublicKeyword));
+            var classDeclaration = SyntaxFactory.ClassDeclaration(model.ClassName);
+
+            // add set it accessibility to public
+            classDeclaration = classDeclaration
+                .AddModifiers(SyntaxFactory.Token(SyntaxKind.PublicKeyword))
+                .WithTrailingTrivia(SyntaxFactory.TriviaList(SyntaxFactory.LineFeed));
+
+            // add on the base class/interface implementations
+            classDeclaration = classDeclaration.WithBaseList(BuildBaseList())
+                .WithTrailingTrivia(SyntaxFactory.TriviaList(SyntaxFactory.LineFeed));
 
             // add the class to the namespace
             @namespace = @namespace
@@ -85,6 +98,71 @@ namespace RoslynExample
                 .NormalizeWhitespace();
 
             return root;
+        }
+
+        private static BaseListSyntax BuildBaseList()
+        {
+            var tokenList = BuildBaseTypeNodeOrTokenList();
+            var baseList = SyntaxFactory.BaseList(SyntaxFactory.SeparatedList<BaseTypeSyntax>(tokenList))
+                .WithTrailingTrivia(SyntaxFactory.TriviaList(SyntaxFactory.LineFeed));
+
+            return baseList;
+        }
+
+        private static IEnumerable<SyntaxNodeOrToken> BuildBaseTypeNodeOrTokenList()
+        {
+            var lineFeedRewriter = new AddLineFeedsSyntaxRewriter<BaseTypeSyntax>();
+
+            var baseTypes = GetBaseTypes();
+            using (var enumerator = baseTypes.GetEnumerator())
+            {
+                if (!enumerator.MoveNext())
+                {
+                    return new SyntaxNodeOrToken[0];
+                }
+
+                var tokenList = new List<SyntaxNodeOrToken>((baseTypes.Count * 2) + 10);
+
+                var lastBaseType = enumerator.Current;
+
+                while (enumerator.MoveNext())
+                {
+                    lineFeedRewriter.AddLineFeedBefore = true;
+                    lineFeedRewriter.AddLineFeedAfter = false;
+                    lastBaseType = lineFeedRewriter.AddLineFeeds(lastBaseType);
+
+                    tokenList.Add(lastBaseType);
+
+                    tokenList.Add(SyntaxFactory.Token(
+                            SyntaxFactory.TriviaList(),
+                            SyntaxKind.CommaToken,
+                            SyntaxFactory.TriviaList(
+                                SyntaxFactory.LineFeed)));
+
+                    lastBaseType = enumerator.Current;
+                }
+
+                lineFeedRewriter.AddLineFeedBefore = false;
+                lineFeedRewriter.AddLineFeedAfter = true;
+
+                lastBaseType = lineFeedRewriter.AddLineFeeds(lastBaseType);
+
+                tokenList.Add(lastBaseType);
+
+                return tokenList;
+            }
+        }
+
+        private static List<BaseTypeSyntax> GetBaseTypes()
+        {
+            Func<string, BaseTypeSyntax> baseTypeFactory = (type) =>
+            {
+                return SyntaxFactory.SimpleBaseType(SyntaxFactory.IdentifierName(type));
+            };
+
+            var baseTypes = ClassImplementations.Select(baseTypeFactory).ToList();
+
+            return baseTypes;
         }
 
         private static CompilationUnitSyntax CreateRoot()
