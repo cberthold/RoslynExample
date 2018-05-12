@@ -5,7 +5,9 @@ using System.Text;
 using System.Threading.Tasks;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.CSharp.Formatting;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using Microsoft.CodeAnalysis.Formatting;
 using Microsoft.CodeAnalysis.Text;
 using RoslynExample.Debugging;
 using RoslynExample.Metadata;
@@ -57,10 +59,16 @@ namespace RoslynExample
             var tree = compilation.SyntaxTrees.First();
             var root = tree.GetCompilationUnitRoot();
 
-            var consoleWriter = new ConsoleWriterSyntaxWalker();
-            consoleWriter.Visit(root);
-
             var command = CommandBuilder.FromSyntaxTree(tree);
+
+            // format the final output
+            var options = solution.Workspace.Options
+                .WithChangedOption(CSharpFormattingOptions.NewLinesForBracesInAccessors, false)
+                .WithChangedOption(CSharpFormattingOptions.NewLinesForBracesInProperties, false);
+
+            command = (CompilationUnitSyntax)Formatter.Format(command, solution.Workspace, options);
+
+
 
             Console.WriteLine(command.ToFullString());
             Console.ReadKey();

@@ -6,7 +6,6 @@ using System.Threading.Tasks;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
-using RoslynExample.Formatters;
 using RoslynExample.Locators;
 using RoslynExample.Metadata;
 using RoslynExample.Models;
@@ -70,7 +69,8 @@ namespace RoslynExample
             var root = CreateRoot();
 
             // add default usings
-            root = root.AddUsings(GetDefaultUsings().ToArray());
+            root = root.AddUsings(GetDefaultUsings().ToArray())
+                .NormalizeWhitespace();
 
             // create the namespace
             var @namespace = CreateNamespace(model.Namespace);
@@ -80,26 +80,23 @@ namespace RoslynExample
 
             // add set it accessibility to public
             classDeclaration = classDeclaration
-                .AddModifiers(SyntaxFactory.Token(SyntaxKind.PublicKeyword))
-                .WithTrailingTrivia(SyntaxFactory.TriviaList(SyntaxFactory.LineFeed));
+                .AddModifiers(SyntaxFactory.Token(SyntaxKind.PublicKeyword));
 
             // add on the base class/interface implementations
-            classDeclaration = classDeclaration.WithBaseList(BuildBaseList())
-                .WithTrailingTrivia(SyntaxFactory.TriviaList(SyntaxFactory.LineFeed));
+            classDeclaration = classDeclaration.WithBaseList(BuildBaseList());
 
             // add on the member properties
             classDeclaration = classDeclaration
+                .NormalizeWhitespace()
                 .WithMembers(SyntaxFactory.List<MemberDeclarationSyntax>(BuildMemberProperties(model.InputMetadata.Properties)));
 
             // add the class to the namespace
             @namespace = @namespace
-                .AddMembers(classDeclaration)
-                .NormalizeWhitespace();
+                .AddMembers(classDeclaration);
 
             root = root
-                // add members to the root compilation unit
-                .AddMembers(@namespace)
-                .NormalizeWhitespace();
+                 // add members to the root compilation unit
+                 .AddMembers(@namespace);
 
             return root;
         }
@@ -152,8 +149,6 @@ namespace RoslynExample
 
         private static IEnumerable<SyntaxNodeOrToken> BuildBaseTypeNodeOrTokenList()
         {
-            var lineFeedRewriter = new AddLineFeedsSyntaxRewriter<BaseTypeSyntax>();
-
             var baseTypes = GetBaseTypes();
             using (var enumerator = baseTypes.GetEnumerator())
             {
@@ -168,10 +163,6 @@ namespace RoslynExample
 
                 while (enumerator.MoveNext())
                 {
-                    lineFeedRewriter.AddLineFeedBefore = true;
-                    lineFeedRewriter.AddLineFeedAfter = false;
-                    lastBaseType = lineFeedRewriter.AddLineFeeds(lastBaseType);
-
                     tokenList.Add(lastBaseType);
 
                     tokenList.Add(SyntaxFactory.Token(
@@ -182,11 +173,6 @@ namespace RoslynExample
 
                     lastBaseType = enumerator.Current;
                 }
-
-                lineFeedRewriter.AddLineFeedBefore = false;
-                lineFeedRewriter.AddLineFeedAfter = true;
-
-                lastBaseType = lineFeedRewriter.AddLineFeeds(lastBaseType);
 
                 tokenList.Add(lastBaseType);
 
