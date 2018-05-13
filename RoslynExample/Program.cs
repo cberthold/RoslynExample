@@ -59,18 +59,19 @@ namespace RoslynExample
             var tree = compilation.SyntaxTrees.First();
             var root = tree.GetCompilationUnitRoot();
 
-            var command = CommandBuilder.FromSyntaxTree(tree);
-
             // format the final output
             var options = solution.Workspace.Options
                 .WithChangedOption(CSharpFormattingOptions.NewLinesForBracesInAccessors, false)
                 .WithChangedOption(CSharpFormattingOptions.NewLinesForBracesInProperties, false);
 
+            var command = CommandBuilder.FromSyntaxTree(tree);
             command = (CompilationUnitSyntax)Formatter.Format(command, solution.Workspace, options);
 
-
+            var mapper = CommandMapperBuilder.FromSyntaxTree(tree);
+            mapper = (CompilationUnitSyntax)Formatter.Format(mapper, solution.Workspace, options);
 
             Console.WriteLine(command.ToFullString());
+            Console.WriteLine(mapper.ToFullString());
             Console.ReadKey();
         }
 

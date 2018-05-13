@@ -52,6 +52,16 @@ namespace RoslynExample.Metadata
             return statement;
         }
 
+        public static ArgumentSyntax CreateSimpleAccessorArgument(this PropertyMetadata property, string objectName)
+        {
+            var argument = SyntaxFactory.Argument(
+                            SyntaxFactory.MemberAccessExpression(
+                                SyntaxKind.SimpleMemberAccessExpression,
+                                SyntaxFactory.IdentifierName(objectName),
+                                SyntaxFactory.IdentifierName(property.PropertyName)));
+            return argument;
+        }
+
         public static ParameterSyntax CreateParameter(this PropertyMetadata property)
         {
             var parameterName = property.PropertyName.LowerCaseFirstLetter();

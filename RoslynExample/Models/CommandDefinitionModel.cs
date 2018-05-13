@@ -12,5 +12,6 @@ namespace RoslynExample.Models
         public string Namespace { get; set; } = "Command";
         public string ClassName { get; set; }
         public EntityMetadata InputMetadata { get; set; }
+        public string InputDtoClassName { get; set; }
     }
 }
