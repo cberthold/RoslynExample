@@ -70,8 +70,12 @@ namespace RoslynExample
             var mapper = CommandMapperBuilder.FromSyntaxTree(tree);
             mapper = (CompilationUnitSyntax)Formatter.Format(mapper, solution.Workspace, options);
 
+            var tests = CommandTestBuilder.FromSyntaxTree(tree);
+            tests = (CompilationUnitSyntax)Formatter.Format(tests, solution.Workspace, options);
+
             Console.WriteLine(command.ToFullString());
             Console.WriteLine(mapper.ToFullString());
+            Console.WriteLine(tests.ToFullString());
             Console.ReadKey();
         }
 
