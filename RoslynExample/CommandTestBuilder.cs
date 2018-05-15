@@ -105,33 +105,91 @@ namespace RoslynExample
 
         private static SyntaxList<MemberDeclarationSyntax> CreateClassMembers(CommandDefinitionModel model)
         {
-            return SyntaxFactory.SingletonList<MemberDeclarationSyntax>(
-                SyntaxFactory.MethodDeclaration(
-                    SyntaxFactory.PredefinedType(
-                        SyntaxFactory.Token(SyntaxKind.VoidKeyword)),
-                    SyntaxFactory.Identifier("Constructor_Should_Set_Values"))
-                .WithAttributeLists(
-                    SyntaxFactory.SingletonList<AttributeListSyntax>(
-                        SyntaxFactory.AttributeList(
-                            SyntaxFactory.SingletonSeparatedList<AttributeSyntax>(
-                                SyntaxFactory.Attribute(
-                                    SyntaxFactory.IdentifierName("Fact"))))))
-                .WithModifiers(
-                    SyntaxFactory.TokenList(
-                        SyntaxFactory.Token(SyntaxKind.PublicKeyword)))
-                .WithBody(
-                    GetConstructorSetValueTestBody(model.InputMetadata)));
+            return SyntaxFactory.List<MemberDeclarationSyntax>(
+                            new MemberDeclarationSyntax[]{
+                                SyntaxFactory.MethodDeclaration(
+                                    SyntaxFactory.PredefinedType(
+                                        SyntaxFactory.Token(SyntaxKind.VoidKeyword)),
+                                    SyntaxFactory.Identifier("Class_Should_Inherit_Base_Command"))
+                                .WithAttributeLists(
+                                    SyntaxFactory.SingletonList<AttributeListSyntax>(
+                                        SyntaxFactory.AttributeList(
+                                            SyntaxFactory.SingletonSeparatedList<AttributeSyntax>(
+                                                SyntaxFactory.Attribute(
+                                                    SyntaxFactory.IdentifierName("Fact"))))))
+                                .WithModifiers(
+                                    SyntaxFactory.TokenList(
+                                        SyntaxFactory.Token(SyntaxKind.PublicKeyword)))
+                                .WithBody(
+                                    SyntaxFactory.Block(
+                                        SyntaxFactory.SingletonList<StatementSyntax>(
+                                            SyntaxFactory.ExpressionStatement(
+                                                SyntaxFactory.InvocationExpression(
+                                                    SyntaxFactory.MemberAccessExpression(
+                                                        SyntaxKind.SimpleMemberAccessExpression,
+                                                        SyntaxFactory.IdentifierName("Assert"),
+                                                        SyntaxFactory.IdentifierName("True")))
+                                                .WithArgumentList(
+                                                    SyntaxFactory.ArgumentList(
+                                                        SyntaxFactory.SingletonSeparatedList<ArgumentSyntax>(
+                                                            SyntaxFactory.Argument(
+                                                                SyntaxFactory.InvocationExpression(
+                                                                    SyntaxFactory.MemberAccessExpression(
+                                                                        SyntaxKind.SimpleMemberAccessExpression,
+                                                                        SyntaxFactory.TypeOfExpression(
+                                                                            SyntaxFactory.IdentifierName(model.ClassName.Replace("Test", string.Empty))),
+                                                                        SyntaxFactory.IdentifierName("IsSubclassOf")))
+                                                                .WithArgumentList(
+                                                                    SyntaxFactory.ArgumentList(
+                                                                        SyntaxFactory.SingletonSeparatedList<ArgumentSyntax>(
+                                                                            SyntaxFactory.Argument(
+                                                                                SyntaxFactory.TypeOfExpression(
+                                                                                    SyntaxFactory.IdentifierName("AbstractUserCommand")))))))))))))),
+                                SyntaxFactory.MethodDeclaration(
+                                    SyntaxFactory.PredefinedType(
+                                        SyntaxFactory.Token(SyntaxKind.VoidKeyword)),
+                                    SyntaxFactory.Identifier("Constructor_Should_Set_Values"))
+                                .WithAttributeLists(
+                                    SyntaxFactory.SingletonList<AttributeListSyntax>(
+                                        SyntaxFactory.AttributeList(
+                                            SyntaxFactory.SingletonSeparatedList<AttributeSyntax>(
+                                                SyntaxFactory.Attribute(
+                                                    SyntaxFactory.IdentifierName("Fact"))))))
+                                .WithModifiers(
+                                    SyntaxFactory.TokenList(
+                                        SyntaxFactory.Token(SyntaxKind.PublicKeyword)))
+                                .WithBody(
+                                    GetConstructorSetValueTestBody(model.InputMetadata)) });
         }
 
         private static BlockSyntax GetConstructorSetValueTestBody(EntityMetadata entityMetadata)
         {
-            var variableDeclarations = entityMetadata.Properties.Select(a => CreateLocalStringVariable(a.PropertyName.LowerCaseFirstLetter(), a.PropertyName));
+            var variableDeclarations = entityMetadata.Properties.Select(a => CreateLocalVariable(a.PropertyName.LowerCaseFirstLetter(), a)).ToList();
+            variableDeclarations.Add(CreateRequestInfo());
             var assertions = entityMetadata.Properties.Select(a => AssertValues(a.PropertyName.LowerCaseFirstLetter(), a.PropertyName)).ToArray();
 
             var block = SyntaxFactory.Block(variableDeclarations);
-            block = block.AddStatements(InstantiateCommand(entityMetadata.Properties))
+            block = block.AddStatements(InstantiateCommand(entityMetadata))
                     .AddStatements(assertions);
             return block;
+        }
+
+        private static LocalDeclarationStatementSyntax CreateRequestInfo()
+        {
+            return SyntaxFactory.LocalDeclarationStatement(
+                            SyntaxFactory.VariableDeclaration(
+                                SyntaxFactory.IdentifierName("var"))
+                            .WithVariables(
+                                SyntaxFactory.SingletonSeparatedList<VariableDeclaratorSyntax>(
+                                    SyntaxFactory.VariableDeclarator(
+                                        SyntaxFactory.Identifier("requestInformation"))
+                                    .WithInitializer(
+                                        SyntaxFactory.EqualsValueClause(
+                                            SyntaxFactory.InvocationExpression(
+                                                SyntaxFactory.MemberAccessExpression(
+                                                    SyntaxKind.SimpleMemberAccessExpression,
+                                                    SyntaxFactory.IdentifierName("RequestInformationMock"),
+                                                    SyntaxFactory.IdentifierName("GetDefaultRequestInfo"))))))));
         }
 
         private static ExpressionStatementSyntax AssertValues(string localProperty, string commandProperty)
@@ -158,11 +216,11 @@ namespace RoslynExample
             return expressionStatement;
         }
 
-        private static LocalDeclarationStatementSyntax InstantiateCommand(IEnumerable<PropertyMetadata> properties)
+        private static LocalDeclarationStatementSyntax InstantiateCommand(EntityMetadata entityMetadata)
         {
             var arguments = new List<SyntaxNodeOrToken>();
             bool first = true;
-            foreach (var property in properties)
+            foreach (var property in entityMetadata.Properties)
             {
                 if (!first)
                 {
@@ -172,6 +230,9 @@ namespace RoslynExample
 
                 arguments.Add(SyntaxFactory.Argument(SyntaxFactory.IdentifierName(property.PropertyName.LowerCaseFirstLetter())));
             }
+
+            arguments.Add(SyntaxFactory.Token(SyntaxKind.CommaToken));
+            arguments.Add(SyntaxFactory.Argument(SyntaxFactory.IdentifierName("requestInformation")));
 
             return SyntaxFactory.LocalDeclarationStatement(
                                                     SyntaxFactory.VariableDeclaration(
@@ -183,26 +244,50 @@ namespace RoslynExample
                                                             .WithInitializer(
                                                                 SyntaxFactory.EqualsValueClause(
                                                                     SyntaxFactory.ObjectCreationExpression(
-                                                                        SyntaxFactory.IdentifierName("TestCommand"))
+                                                                        SyntaxFactory.IdentifierName(entityMetadata.ClassName.Replace("Test", string.Empty)))
                                                                     .WithArgumentList(
                                                                         SyntaxFactory.ArgumentList(
                                                                             SyntaxFactory.SeparatedList<ArgumentSyntax>(arguments))))))));
         }
 
-        private static LocalDeclarationStatementSyntax CreateLocalStringVariable(string propertyName, string value)
+        private static LocalDeclarationStatementSyntax CreateLocalVariable(string propertyName, PropertyMetadata propertyMetadata)
         {
             return SyntaxFactory.LocalDeclarationStatement(
                                                     SyntaxFactory.VariableDeclaration(
-                                                        SyntaxFactory.IdentifierName("var"))
+                                                        SyntaxFactory.IdentifierName(propertyMetadata.TypeName))
                                                     .WithVariables(
                                                         SyntaxFactory.SingletonSeparatedList<VariableDeclaratorSyntax>(
                                                             SyntaxFactory.VariableDeclarator(
                                                                 SyntaxFactory.Identifier(propertyName))
                                                             .WithInitializer(
-                                                                SyntaxFactory.EqualsValueClause(
-                                                                    SyntaxFactory.LiteralExpression(
-                                                                        SyntaxKind.StringLiteralExpression,
-                                                                        SyntaxFactory.Literal(value)))))));
+                                                                        GetRandomValue(propertyMetadata)))));
+        }
+
+        private static EqualsValueClauseSyntax GetRandomValue(PropertyMetadata propertyMetadata)
+        {
+            switch(propertyMetadata.TypeName.ToLower().Replace("?", string.Empty))
+            {
+                case "guid":
+                    return SyntaxFactory.EqualsValueClause(
+                                            SyntaxFactory.InvocationExpression(
+                                                SyntaxFactory.MemberAccessExpression(
+                                                    SyntaxKind.SimpleMemberAccessExpression,
+                                                    SyntaxFactory.IdentifierName("Guid"),
+                                                    SyntaxFactory.IdentifierName("NewGuid"))));
+
+                case "int":
+                    return SyntaxFactory.EqualsValueClause(
+                                                            SyntaxFactory.LiteralExpression(
+                                                                SyntaxKind.StringLiteralExpression,
+                                                                    SyntaxFactory.Literal(new Random().Next(int.MaxValue))));
+
+                case "string":
+                default:
+                    return SyntaxFactory.EqualsValueClause(
+                                                            SyntaxFactory.LiteralExpression(
+                                                                SyntaxKind.StringLiteralExpression,
+                                                                    SyntaxFactory.Literal(propertyMetadata.PropertyName)));
+            }
         }
 
         private static CompilationUnitSyntax CreateRoot()
